@@ -1,0 +1,50 @@
+import { Button } from "./ui/button";
+
+const Hero = () => {
+  return (
+    <section className="relative w-full h-[90vh] overflow-hidden">
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover"
+      >
+        <source src="/bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Dark Overlay */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/90"></div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-center h-full px-4 sm:px-6 md:px-12 lg:px-24">
+        <h1 className="font-display font-light text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white mb-6">
+          Temukan Bantuan di <span className="text-secondary">Bantuin</span>
+        </h1>
+
+        <p className="text-white/90 text-base sm:text-lg md:text-xl max-w-3xl">
+          Platform terpercaya untuk menghubungkan Anda dengan penyedia jasa
+          profesional di berbagai bidang
+        </p>
+
+        {/* Optional: Search Bar */}
+        <div className="mt-12 w-full max-w-2xl">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Cari layanan yang kamu butuhkan..."
+              className="w-full px-6 py-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-secondary"
+            />
+            <Button className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md">
+              Cari
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
