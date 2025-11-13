@@ -65,34 +65,11 @@ const SellerLayout = ({ children }: SellerLayoutProps) => {
   const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-6 h-16 border-b">
+      <div className="flex items-center gap-2 px-6 h-16">
         <Image src={Logo} alt="logo" width={32} height={32} />
         <h1 className="font-display text-primary font-bold text-xl">
           Bant<span className="text-secondary">uin</span>
         </h1>
-      </div>
-
-      {/* User Info */}
-      <div className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={user?.profilePicture || ""}
-              alt={user?.fullName}
-            />
-            <AvatarFallback className="bg-primary text-white">
-              {user?.fullName ? getInitials(user.fullName) : "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.fullName}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              Penyedia Jasa
-            </p>
-          </div>
-        </div>
       </div>
 
       <Separator />
