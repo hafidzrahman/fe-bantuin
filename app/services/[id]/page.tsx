@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
+
 import {
   TbStar,
   TbClock,
@@ -98,6 +100,7 @@ const ServiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [currentTab, setCurrentTab] = useState("ringkasan");
+  const { openChatWith } = useChat();
 
   useEffect(() => {
     const fetchService = async () => {
@@ -138,6 +141,22 @@ const ServiceDetailPage = () => {
       return;
     }
     router.push(`/orders/create?serviceId=${params.id}`);
+  };
+
+  const handleChatSeller = () => {
+    if (!isAuthenticated) {
+      router.push("/auth/login"); // atau tampilkan modal login
+      return;
+    }
+
+    if (service) {
+      // Panggil dengan object lengkap (nama & foto) untuk tampilan draft
+      openChatWith({
+        id: service.seller.id,
+        fullName: service.seller.fullName,
+        profilePicture: service.seller.profilePicture,
+      });
+    }
   };
 
   const getInitials = (name: string) => {
@@ -568,13 +587,13 @@ const ServiceDetailPage = () => {
                     </Button>
 
                     <Button
-                      onClick={handleOrder}
+                      onClick={handleChatSeller}
                       variant="outline"
                       className="w-full"
                       size="lg"
                       disabled={isOwner || isInactive}
                     >
-                      <TbMessage className="mr-2" />
+                      <TbMessageCircle className="mr-2 h-5 w-5" />
                       {isOwner
                         ? "Jasa Anda Sendiri"
                         : isInactive

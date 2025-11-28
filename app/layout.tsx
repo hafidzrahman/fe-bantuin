@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geologica, Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
+import { ChatFloatingWindow } from "@/components/chat/ChatFloatingWindow";
 import localFont from "next/font/local";
 
 const mattone = localFont({
@@ -44,7 +46,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${mattone.variable} ${outfit.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ChatProvider>
+            {children}
+            <ChatFloatingWindow />
+          </ChatProvider>
+        </AuthProvider>
       </body>
     </html>
   );

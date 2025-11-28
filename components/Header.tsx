@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -11,26 +11,45 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { FcGoogle } from "react-icons/fc";
-import { TbDashboard, TbTools } from "react-icons/tb";
+import { TbTools, TbDashboard, TbMail } from "react-icons/tb";
 import { HiMenu, HiX } from "react-icons/hi";
-import { IoLogOut, IoSettingsOutline } from "react-icons/io5";
+import { IoLogOut } from "react-icons/io5";
 import { FiUser } from "react-icons/fi";
 import Link from "next/link";
 import Image from "next/image";
 import Logo from "@/public/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell } from "lucide-react";
-
-// Import Baru
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
+import { useChat } from "@/contexts/ChatContext";
+import { ChatInboxList } from "./chat/ChatInboxList";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, login, logout, loading } = useAuth();
 
+  // Ambil unreadCount dari context
+  const { isInboxOpen, toggleInbox, unreadCount } = useChat();
+
+  // Ref untuk mendeteksi klik di luar inbox
+  const inboxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        inboxRef.current &&
+        !inboxRef.current.contains(event.target as Node)
+      ) {
+        // Jangan tutup jika tombol toggle yang diklik (ditangani oleh toggleInbox)
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <header className="w-full sticky top-0 bg-white z-50 border-b border-b-accent">
-      <div className="h-16 md:h-20 lg:h-24 flex px-4 sm:px-6 md:px-12 lg:px-24 xl:px-48 items-center justify-between">
+      <div className="h-16 md:h-20 lg:h-24 flex px-4 sm:px-6 md:px-12 lg:px-24 xl:px-48 items-center justify-between relative">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Image
@@ -73,12 +92,11 @@ const Header = () => {
           </ul>
         </nav>
 
-        {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Desktop Action Buttons */}
+        <div className="hidden md:flex items-center gap-4" ref={inboxRef}>
           {loading ? (
             <div className="animate-pulse flex gap-2">
               <div className="h-10 w-32 bg-gray-200 rounded"></div>
-              <div className="h-10 w-24 bg-gray-200 rounded"></div>
             </div>
           ) : isAuthenticated && user ? (
             <>
@@ -89,11 +107,50 @@ const Header = () => {
                 <TbTools className="text-white" />
                 <Link href="/seller/dashboard">Jadi Penyedia</Link>
               </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative rounded-full hover:bg-gray-100 text-gray-600"
+                  onClick={toggleInbox}
+                >
+                  <TbMail className="h-10 w-10" />
 
-              {/* User Dropdown Menu */}
+                  {/* Badge Notifikasi Merah */}
+                  {unreadCount > 0 && (
+                    <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white pointer-events-none" />
+                  )}
+                </Button>
+
+                {/* Dropdown Inbox */}
+                {isInboxOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-80 md:w-96 shadow-xl border border-gray-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 rounded-xl bg-white">
+                    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+                      <span className="font-semibold text-sm text-gray-900">
+                        Pesan Masuk
+                      </span>
+                      {unreadCount > 0 && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          {unreadCount} baru
+                        </span>
+                      )}
+                    </div>
+                    <ChatInboxList />
+                  </div>
+                )}
+              </div>
+
+              <Button className="text-sm">
+                <TbTools className="text-white" />
+                <Link href="/seller/dashboard" className="hidden lg:inline">
+                  Jadi Penyedia
+                </Link>
+              </Button>
+
+              {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                  <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ml-2 transition-transform active:scale-95">
                     {user.profilePicture ? (
                       <Image
                         src={user.profilePicture}
@@ -121,8 +178,6 @@ const Header = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-
-                  {/* GANTI INI: Dashboard link */}
                   <DropdownMenuItem className="cursor-pointer" asChild>
                     <Link
                       href="/buyer/dashboard"
@@ -132,20 +187,9 @@ const Header = () => {
                       <span>Dashboard</span>
                     </Link>
                   </DropdownMenuItem>
-
-                  <DropdownMenuItem className="cursor-pointer" asChild>
-                    <Link
-                      href="/buyer/settings"
-                      className="flex items-center w-full"
-                    >
-                      <IoSettingsOutline className="mr-2 h-4 w-4" />
-                      <span>Pengaturan</span>
-                    </Link>
-                  </DropdownMenuItem>
-
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    className="cursor-pointer text-red-600"
                     onClick={logout}
                   >
                     <IoLogOut className="mr-2 h-4 w-4" />
