@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geologica, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
