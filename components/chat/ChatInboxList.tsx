@@ -41,7 +41,7 @@ export const ChatInboxList = () => {
               </Avatar>
               <div className="flex-1 overflow-hidden">
                 <div className="flex justify-between items-center mb-1">
-                  <h4 className="font-semibold text-md truncate">
+                  <h4 className="font-semibold text-xs truncate">
                     {otherParticipant.fullName}
                   </h4>
                   {conv.lastMessage && (
