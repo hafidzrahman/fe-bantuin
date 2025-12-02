@@ -12,13 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
+import { ReportUserDialog } from "@/components/report/ReportUserDialog"; // <--- IMPORT INI
 
 import {
   TbStar,
   TbClock,
   TbRefresh,
   TbShoppingCart,
-  TbMapPin,
   TbEyeOff,
   TbCheck,
   TbShield,
@@ -26,9 +26,10 @@ import {
   TbMessageCircle,
   TbChevronLeft,
   TbChevronRight,
-  TbMessage,
+  TbFlag, // <--- Pastikan ini diimport
 } from "react-icons/tb";
 
+// ... (Interface ServiceDetail tetap sama)
 interface ServiceDetail {
   id: string;
   title: string;
@@ -404,16 +405,39 @@ const ServiceDetailPage = () => {
                         </Avatar>
 
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold">
-                            {service.seller.fullName}
-                          </h3>
-                          {service.seller.major && (
-                            <p className="text-sm text-gray-600">
-                              {service.seller.major}
-                              {service.seller.batch &&
-                                ` • Angkatan ${service.seller.batch}`}
-                            </p>
-                          )}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-xl font-semibold">
+                                {service.seller.fullName}
+                              </h3>
+                              {service.seller.major && (
+                                <p className="text-sm text-gray-600">
+                                  {service.seller.major}
+                                  {service.seller.batch &&
+                                    ` • Angkatan ${service.seller.batch}`}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* BUTTON REPORT DI SINI */}
+                            {isAuthenticated &&
+                              user?.id !== service.seller.id && (
+                                <ReportUserDialog
+                                  reportedUserId={service.seller.id}
+                                  reportedUserName={service.seller.fullName}
+                                  trigger={
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-muted-foreground hover:text-destructive h-auto py-1 px-2"
+                                    >
+                                      <TbFlag className="w-4 h-4 mr-1" />
+                                      <span className="text-xs">Laporkan</span>
+                                    </Button>
+                                  }
+                                />
+                              )}
+                          </div>
 
                           <div className="flex items-center gap-1 text-sm text-gray-600 mt-2">
                             <TbStar className="h-4 w-4 fill-yellow-400 text-yellow-400" />
