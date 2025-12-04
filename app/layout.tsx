@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ChatFloatingWindow } from "@/components/chat/ChatFloatingWindow";
 import localFont from "next/font/local";
+import { Toaster } from "@/components/ui/sonner";
 
 const mattone = localFont({
   src: [
@@ -50,6 +51,7 @@ export default function RootLayout({
           <ChatProvider>
             {children}
             <ChatFloatingWindow />
+            <Toaster position="top-right" />
           </ChatProvider>
         </AuthProvider>
       </body>
