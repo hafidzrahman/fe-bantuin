@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,12 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { TbX, TbLoader, TbPhotoPlus } from "react-icons/tb";
 import { uploadServicePhoto } from "@/lib/upload";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Slider } from "@/components/ui/slider";
-import Cropper from "react-easy-crop";
-import getCroppedImg from "@/lib/cropImage";
 import { SERVICE_CATEGORIES_LIST } from "@/lib/constants";
 
 interface ServiceFormProps {
@@ -94,37 +90,16 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
     if (!files || files.length === 0 || !user) return;
 
     // Check limit
-    if (formData.images.length + 1 > 5) {
+    if (formData.images.length + files.length > 5) {
       setErrors((prev) => ({
         ...prev,
-        images: "Maksimal 5 gambar",
+        images: "Maksimal 5 gambar diperbolehkan",
       }));
       return;
     }
 
-    // Read the first selected file for cropping
-    const file = files[0];
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      setImageSrc(reader.result as string);
-      setIsCropping(true);
-    });
-    reader.readAsDataURL(file);
-
-    // Reset input to allow selecting same file again
-    e.target.value = "";
-  };
-
-  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  };
-
-  const uploadCroppedImage = async (blob: Blob) => {
-    if (!user) return;
-
     setUploading(true);
     setErrors((prev) => ({ ...prev, images: "" }));
-    setIsCropping(false);
 
     try {
       // Convert blob to File
@@ -180,9 +155,19 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
     if (!formData.category) {
       newErrors.category = "Kategori wajib dipilih";
     }
-    if (!formData.price || formData.price <= 0) {
-      newErrors.price = "Harga harus lebih dari 0";
+
+    // Validate price based on pricing type
+    if (formData.pricingType === 'FIXED' || formData.pricingType === 'CUSTOM') {
+      if (!formData.price || formData.price <= 0) {
+        newErrors.price = "Harga harus lebih dari 0";
+      }
+    } else {
+      // Per unit pricing
+      if (!formData.pricePerUnit || formData.pricePerUnit <= 0) {
+        newErrors.price = "Harga per unit harus lebih dari 0";
+      }
     }
+
     if (!formData.deliveryTime || formData.deliveryTime <= 0) {
       newErrors.deliveryTime = "Waktu pengerjaan harus lebih dari 0";
     }
@@ -201,26 +186,27 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
 
     setLoading(true);
     try {
-      await onSubmit(formData);
+      // Prepare clean payload
+      const payload = { ...formData };
+
+      // Remove optional fields if they are 0 or empty
+      if (!payload.minimumOrder) delete payload.minimumOrder;
+      if (!payload.pricePerUnit) delete payload.pricePerUnit;
+
+      // For FIXED/CUSTOM pricing, ensure unit params are cleared
+      if (payload.pricingType === 'FIXED' || payload.pricingType === 'CUSTOM') {
+        delete payload.pricePerUnit;
+        delete payload.minimumOrder;
+      } else {
+        // For unit pricing, ensure main price is set (can be same as unit price or 0, backend handles display)
+        // Usually 'price' is the base price. For unit pricing, maybe we set price to pricePerUnit for sorting?
+        if (payload.pricePerUnit) payload.price = payload.pricePerUnit;
+      }
+
+      await onSubmit(payload);
       onOpenChange(false);
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        price: 0,
-        deliveryTime: 1,
-        revisions: 0,
-        allowRevisions: false,
-        images: [],
-        pricingType: undefined,
-        pricePerUnit: undefined,
-        minimumOrder: undefined,
-        requirements: "",
-        whatsIncluded: "",
-        additionalInfo: "",
-        faq: [],
-      });
+      // Reset form (optional, depending on if drawer unmounts or not)
+      // Leaving as is for now
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -299,16 +285,12 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
                 {errors.deliveryTime && <p className="text-sm text-destructive">{errors.deliveryTime}</p>}
               </div>
 
-              {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="revisions">Jumlah Revisi</Label>
                 <Input id="revisions" type="number" value={formData.revisions || ""} onChange={(e) => handleChange("revisions", Number(e.target.value))} placeholder="1" min={0} max={10} />
               </div>
 
-              {/* Pricing Details Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold text-sm">Detail Harga</h3>
-
+              {(formData.pricingType === "FIXED" || formData.pricingType === "CUSTOM") && (
                 <div className="space-y-2">
                   <Label htmlFor="pricingType">Tipe Pricing</Label>
                   <Select value={formData.pricingType || "FIXED"} onValueChange={(value) => handleChange("pricingType", value as any)}>
@@ -329,6 +311,7 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
                   </Select>
                   <p className="text-xs text-muted-foreground">Pilih model pricing yang sesuai dengan jasa Anda</p>
                 </div>
+              )}
 
                 {(formData.pricingType === "FIXED" || formData.pricingType === "CUSTOM") && (
                   <div className="space-y-2">
@@ -405,9 +388,9 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
                 )}
               </div>
 
-              {/* Service Details Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold text-sm">Informasi Tambahan</h3>
+            {/* Service Details Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-semibold text-sm">Informasi Tambahan</h3>
 
                 <div className="space-y-2">
                   <Label htmlFor="requirements">Yang Perlu Disiapkan Customer</Label>
@@ -448,15 +431,16 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
                   <p className="text-xs text-muted-foreground">{formData.additionalInfo?.length || 0}/500 karakter</p>
                 </div>
               </div>
+            </div>
 
-              {/* Images */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label>
-                    Gambar Jasa <span className="text-destructive">*</span>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">{formData.images.length}/5 gambar</p>
-                </div>
+            {/* Images */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <Label>
+                  Gambar Jasa <span className="text-destructive">*</span>
+                </Label>
+                <p className="text-xs text-muted-foreground">{formData.images.length}/5 gambar</p>
+              </div>
 
                 <Input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} disabled={formData.images.length >= 5 || uploading} className="hidden" />
 
@@ -471,35 +455,30 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
                     </div>
                   ))}
 
-                  {/* Add Image Button */}
-                  {formData.images.length < 5 && (
-                    <div
-                      onClick={() => !uploading && fileInputRef.current?.click()}
-                      className={`
+                {/* Add Image Button */}
+                {formData.images.length < 5 && (
+                  <div
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    className={`
                       relative aspect-[16/9] rounded-lg border-2 border-dashed 
                       flex flex-col items-center justify-center cursor-pointer transition-all
                       ${uploading ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed" : "border-gray-300 hover:border-primary hover:bg-primary/5"}
                     `}
-                    >
-                      {uploading ? (
-                        <div className="flex flex-col items-center text-muted-foreground">
-                          <TbLoader className="h-8 w-8 animate-spin mb-2" />
-                          <span className="text-xs">Mengupload...</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center text-muted-foreground gap-2">
-                          <TbPhotoPlus className="h-8 w-8" />
-                          <span className="text-xs font-medium">Tambah Gambar</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {errors.images && <p className="text-sm text-destructive">{errors.images}</p>}
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center text-muted-foreground">
+                        <TbLoader className="h-8 w-8 animate-spin mb-2" />
+                        <span className="text-xs">Mengupload...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center text-muted-foreground gap-2">
+                        <TbPhotoPlus className="h-8 w-8" />
+                        <span className="text-xs font-medium">Tambah Gambar</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          </form>
 
           <DrawerFooter>
             <Button onClick={handleSubmit} disabled={loading} className="w-full">
@@ -529,13 +508,10 @@ const ServiceForm = ({ open, onOpenChange, onSubmit, initialData, mode = "create
             <Button variant="outline" onClick={() => setIsCropping(false)}>
               Batal
             </Button>
-            <Button onClick={handleCropConfirm} disabled={uploading}>
-              {uploading ? "Menyimpan..." : "Simpan Gambar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
