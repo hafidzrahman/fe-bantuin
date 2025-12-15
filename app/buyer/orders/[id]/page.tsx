@@ -38,7 +38,6 @@ import {
   X,
   Ban,
   MessageSquareWarning,
-  Shield,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { uploadBuyerOrderPhoto } from "@/lib/upload";
