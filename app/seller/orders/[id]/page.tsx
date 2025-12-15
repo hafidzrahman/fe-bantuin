@@ -64,6 +64,11 @@ const SellerOrderDetailPage = () => {
   const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [showDeliverDialog, setShowDeliverDialog] = useState(false);
 
+  // Rejection State
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
+
   const [progressTitle, setProgressTitle] = useState("");
   const [progressDesc, setProgressDesc] = useState("");
   const [progressFiles, setProgressFiles] = useState<string[]>([]);
@@ -112,6 +117,37 @@ const SellerOrderDetailPage = () => {
       fetchOrder();
     } catch (e) {
       toast.error("Gagal memulai pekerjaan");
+    }
+  };
+
+  const handleRejectOrder = async () => {
+    if (rejectReason.length < 10) {
+      toast.error("Alasan penolakan minimal 10 karakter");
+      return;
+    }
+    setRejectLoading(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(`/api/orders/${order?.id}/cancel/seller`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: rejectReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Pesanan ditolak. Dana akan dikembalikan ke Buyer.");
+        setShowRejectDialog(false);
+        fetchOrder();
+      } else {
+        toast.error(data.error || "Gagal menolak pesanan");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -338,28 +374,37 @@ const SellerOrderDetailPage = () => {
 
           <div className="flex items-center gap-2">
             {order.status === "PAID_ESCROW" && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="lg">
-                    <Briefcase className="mr-2 h-4 w-4" /> Mulai Kerjakan
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Mulai Pengerjaan?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Status pesanan akan berubah menjadi "Dikerjakan". Pastikan
-                      Anda sudah siap memulai.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleStartWork}>
-                      Ya, Mulai
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 border shadow-none"
+                >
+                  <X className="mr-2 h-4 w-4" /> Tolak
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="lg">
+                      <Briefcase className="mr-2 h-4 w-4" /> Mulai Kerjakan
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Mulai Pengerjaan?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Status pesanan akan berubah menjadi "Dikerjakan". Pastikan
+                        Anda sudah siap memulai.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleStartWork}>
+                        Ya, Mulai
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
 
             {(order.status === "IN_PROGRESS" ||
@@ -838,6 +883,46 @@ const SellerOrderDetailPage = () => {
                 Batal
               </Button>
               <Button onClick={handleSubmitDeliver}>Kirim</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* REJECT DIALOG */}
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-destructive">Tolak Pesanan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Menolak pesanan akan membatalkan transaksi dan mengembalikan dana sepenuhnya ke Pembeli.
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="space-y-2">
+                <Label>Alasan Penolakan</Label>
+                <Textarea
+                  placeholder="Contoh: Saya sedang overload, deskripsi kurang jelas..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">Minimal 10 karakter.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowRejectDialog(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRejectOrder}
+                disabled={rejectLoading || rejectReason.length < 10}
+              >
+                {rejectLoading ? "Memproses..." : "Tolak Pesanan"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

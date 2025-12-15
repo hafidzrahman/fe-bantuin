@@ -28,6 +28,8 @@ import {
   TbStar,
   TbShoppingCart,
   TbClock,
+  TbChevronLeft,
+  TbChevronRight,
 } from "react-icons/tb";
 import Image from "next/image";
 
@@ -430,16 +432,16 @@ const SellerServicesPage = () => {
                         service.status === "PENDING"
                           ? "secondary"
                           : service.status === "REJECTED"
-                          ? "destructive"
-                          : "outline"
+                            ? "destructive"
+                            : "outline"
                       }
                       className="bg-white/90"
                     >
                       {service.status === "PENDING"
                         ? "Menunggu"
                         : service.status === "REJECTED"
-                        ? "Ditolak"
-                        : "Diterima"}
+                          ? "Ditolak"
+                          : "Diterima"}
                     </Badge>
                     <Badge variant="outline" className="bg-white/90">
                       {categoryNames[service.category]}
